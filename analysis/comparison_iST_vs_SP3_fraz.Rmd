@@ -1679,7 +1679,9 @@ data_unique %>%
 #### Venn mean
 
 ```{r}
-knitr::include_graphics(here::here("data/venn_iST.png"))
+dir.create(here::here("docs/assets"), showWarnings = F)
+file.copy(from = here::here("data/venn_iST.png"), to = here::here("docs/assets/venn_iST.png"))
+knitr::include_graphics(here::here("assets/venn_iST.png"), error = F)
 ```
 
 
@@ -1778,7 +1780,9 @@ data_unique %>%
 #### Venn mean
 
 ```{r}
-knitr::include_graphics(here::here("data/venn_SP3.png"))
+dir.create(here::here("docs/assets"), showWarnings = F)
+file.copy(from = here::here("data/venn_SP3.png"), to = here::here("docs/assets/venn_SP3.png"))
+knitr::include_graphics(here::here("assets/venn_SP3.png"), error = F)
 ```
 
 
