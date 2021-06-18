@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Fabio Bedin | MS-Unit" />
+
+
+<title>iST vs SP3</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-sm-12 col-md-4 col-lg-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-sm-12 col-md-8 col-lg-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Internal_test</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">iST vs SP3</h1>
+<h4 class="author">Fabio Bedin | MS-Unit</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2021-06-18
+</p>
+<p>
+<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>Internal_test/</code> <span class="glyphicon glyphicon-question-sign" aria-hidden="true" title="This is the local directory in which the code in this file was executed."> </span>
+</p>
+<p>
+This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis was created with <a
+  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.2). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git repository, you know the exact version of the code that produced these results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the global environment can affect the analysis in your R Markdown file in unknown ways. For reproduciblity it’s best to always run the code in an empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20210610code"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Seed:</strong> <code>set.seed(20210610)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20210610code" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20210610)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Session information:</strong> recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be confident that you successfully produced the results during this run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrong2287c34"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> 2287c34 </a>
+</p>
+</div>
+<div id="strongRepositoryversionstrong2287c34" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version 2287c34. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+
+Untracked files:
+    Untracked:  code/custom_functions.R
+    Untracked:  data/PoteinCountInGel.txt
+    Untracked:  data/expdesign.tsv
+    Untracked:  data/expdesign_2.tsv
+    Untracked:  data/expdesign_3.tsv
+    Untracked:  data/experimentalDesignTemplate.xlsx
+    Untracked:  data/peptides.rar
+    Untracked:  data/peptides.txt
+    Untracked:  data/proteinGroupsInGel.txt
+    Untracked:  data/proteinGroups_iST_SP3_HpH_Add_on.txt
+    Untracked:  data/summary.xlsx
+    Untracked:  data/venn_SP3.png
+    Untracked:  data/venn_iST.png
+    Untracked:  gene_name_SP3_50ug_AddOn.txt
+    Untracked:  gene_name_SP3_50ug_HpH6.txt
+    Untracked:  gene_name_SP3_50ug_HpH8.txt
+    Untracked:  gene_name_iST_50ug_AddOn.txt
+    Untracked:  gene_name_iST_50ug_HpH6.txt
+    Untracked:  gene_name_iST_50ug_HpH8.txt
+
+Unstaged changes:
+    Modified:   analysis/_site.yml
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not included in this status report because it is ok for generated content to have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were made to the R Markdown (<code>analysis/comparison_iST_vs_SP3.Rmd</code>) and HTML (<code>docs/comparison_iST_vs_SP3.html</code>) files. If you’ve configured a remote Git repository (see <code>?wflow_git_remote</code>), click on the hyperlinks in the table below to view the files as they were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+2287c34
+</td>
+<td>
+FabioBedin
+</td>
+<td>
+2021-06-18
+</td>
+<td>
+wflow_publish(c(“analysis/index.Rmd”, “analysis/comparison_iST_vs_SP3.Rmd”,
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<pre class="r"><code>knitr::opts_chunk$set(fig.align = &quot;center&quot;, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 10)
+library(&quot;MBQN&quot;)
+library(&quot;dplyr&quot;)
+library(&quot;tidyr&quot;)
+library(&quot;DEP&quot;)
+library(&quot;SummarizedExperiment&quot;)
+library(&quot;preprocessCore&quot;)
+library(&quot;tibble&quot;)
+library(&quot;ggplot2&quot;)
+library(&quot;enrichR&quot;)
+library(&quot;DT&quot;)
+library(&quot;stringr&quot;)
+library(&quot;patchwork&quot;)
+library(&quot;here&quot;)
+library(&quot;datapasta&quot;)
+library(&quot;ggstatsplot&quot;)
+library(&quot;UpSetR&quot;)
+library(&quot;ggrepel&quot;)</code></pre>
+<pre class="r"><code>source(here::here(&quot;code/custom_functions.R&quot;))</code></pre>
+<div id="introduction" class="section level2 tabset tabset-fade tabset-pills">
+<h2>Introduction</h2>
+<hr />
+<p>scrivere qualcosa…</p>
+<pre class="r"><code>data &lt;- read.csv(here::here(&quot;data/proteinGroups_iST_SP3_HpH_Add_on.txt&quot;), header = TRUE,stringsAsFactors = FALSE, sep = &quot;\t&quot;)
+
+data &lt;- data[data$Reverse != &quot;+&quot; &amp; data$Potential.contaminant != &quot;+&quot; &amp; data$Only.identified.by.site != &quot;+&quot;,]
+
+data_unique &lt;- make_unique(data, &quot;Gene.names&quot;, &quot;Protein.IDs&quot;, delim = &quot;;&quot;)</code></pre>
+<div id="titration-ist-vs-sp3" class="section level3 tabset tabset-fade">
+<h3>Titration iST vs SP3</h3>
+<p>In this analysis I compare the different number of protein identify in the two conditions <strong>iST</strong> and <strong>iST + SP3</strong> taking into account the different concentrations used: <em>0.1ug</em>, <em>1ug</em> and <em>5ug</em>.</p>
+<pre class="r"><code>expdesign &lt;- read.table(here::here(&quot;data/expdesign_2.tsv&quot;), header = T, stringsAsFactors = F)
+
+conditions&lt;-c(&quot;Ist_01ug&quot;, &quot;Ist_1ug&quot;, &quot;Ist_5ug&quot;, &quot;SP3_01ug&quot;, &quot;SP3_1ug&quot;, &quot;SP3_5ug&quot;)
+#conditions&lt;-c(&quot;Fractination_8_iST&quot;, &quot;Fractination_6_iST&quot;, &quot;Fractination_3_iST_AddOn&quot;)
+
+expdesign &lt;- subset(expdesign, condition %in% conditions)
+
+columns&lt;-match(paste(&quot;Intensity.&quot;,expdesign$label,sep=&quot;&quot;),colnames(data_unique))
+
+Titration &lt;- make_se(data_unique, columns, expdesign)</code></pre>
+<div id="protein-per-sapmle" class="section level4">
+<h4>Protein per sapmle</h4>
+<pre class="r"><code>plot_numbers_lables(Titration, sub_title = &quot;Titration&quot;, lab_size = 10)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/plot_numb_1-1.png" width="1440" style="display: block; margin: auto;" /></p>
+</div>
+<div id="distibution-of-each-sample" class="section level4">
+<h4>Distibution of each sample</h4>
+<pre class="r"><code>plot_normalization(Titration)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/plot_norm_1-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># data_unique %&gt;%
+#   as.data.frame() %&gt;%
+#   select(starts_with(c(&quot;name&quot;, &quot;Intensity.&quot;))) %&gt;%
+#   select(starts_with(&quot;name&quot;) | contains(&quot;ug&quot;) &amp; !contains(&quot;AddOn&quot;) &amp; !contains(&quot;HpH&quot;)) %&gt;% 
+#   pivot_longer(!name, names_to = &quot;samples&quot;, values_to = &quot;intensity&quot;) %&gt;% 
+#   mutate(intensity = if_else(intensity == 0, 0, 1)) %&gt;% 
+#   group_by(samples) %&gt;% 
+#   summarize(n = n(), sum = sum(intensity)) %&gt;% 
+#   mutate(samples = gsub(pattern = &quot;^.*\\.&quot;, replacement = &quot;&quot;, samples)) %&gt;% 
+#   mutate(condition = gsub(pattern = &quot;_[[:digit:]]$&quot;, replacement = &quot;&quot;, samples)) %&gt;% 
+#   ggplot( mapping = aes(x = samples, y = sum, fill = condition)) +
+#     geom_col() +
+#     geom_text(aes(label=sum), size=5, position = position_stack(vjust = 0.5))+
+#     labs(title = &quot;Titration&quot;, x = &quot;&quot;,y = &quot;Number of proteins&quot;) +
+#     theme_DEP2() + 
+#     theme(plot.subtitle = element_text(size = 16, face = &quot;bold&quot;, hjust = 0.5), plot.title = element_text(size = 20)) +
+#     labs(x = NULL, subtitle = &quot;Protein per sample&quot;) </code></pre>
+</div>
+<div id="upset-plot-0.1ug" class="section level4">
+<h4>Upset plot 0.1ug</h4>
+<pre class="r"><code>define_set &lt;- c(&quot;iST_01ug_1&quot;, &quot;iST_01ug_2&quot;, &quot;iST_01ug_3&quot;,&quot;SP3_01ug_1&quot;, &quot;SP3_01ug_2&quot;, &quot;SP3_01ug_3&quot;)
+
+data_unique %&gt;%
+  as.data.frame() %&gt;%
+  select(starts_with(c(&quot;name&quot;, &quot;Intensity.&quot;))) %&gt;%
+  ## define combination of interest in the original dataset
+  select(starts_with(&quot;name&quot;) | contains(&quot;ug&quot;) &amp; !contains(&quot;AddOn&quot;) &amp; !contains(&quot;HpH&quot;)) %&gt;% 
+  pivot_longer(!name, names_to = &quot;samples&quot;, values_to = &quot;intensity&quot;) %&gt;% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %&gt;% 
+  mutate(samples = gsub(pattern = &quot;^.*\\.&quot;, replacement = &quot;&quot;, samples)) %&gt;% 
+  pivot_wider(names_from = samples, values_from = intensity) %&gt;% 
+  as.data.frame() %&gt;% 
+  upset(nsets = 6,
+        sets = define_set,
+        #order.by = &quot;degree&quot;,
+        order.by = &quot;freq&quot;,
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c(&quot;coral2&quot;, &quot;turquoise3&quot;), each = 3),
+        main.bar.color  = &quot;gray44&quot;)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/up_1-1.png" width="1440" style="display: block; margin: auto;" /></p>
+</div>
+<div id="upset-plot-1ug" class="section level4">
+<h4>Upset plot 1ug</h4>
+<pre class="r"><code>define_set &lt;- c(&quot;iST_1ug_1&quot;, &quot;iST_1ug_2&quot;, &quot;iST_1ug_3&quot;, &quot;SP3_1ug_1&quot;, &quot;SP3_1ug_2&quot;, &quot;SP3_1ug_3&quot;)
+
+data_unique %&gt;%
+  as.data.frame() %&gt;%
+  select(starts_with(c(&quot;name&quot;, &quot;Intensity.&quot;))) %&gt;%
+  ## define combination of interest in the original dataset
+  select(starts_with(&quot;name&quot;) | contains(&quot;ug&quot;) &amp; !contains(&quot;AddOn&quot;) &amp; !contains(&quot;HpH&quot;)) %&gt;% 
+  pivot_longer(!name, names_to = &quot;samples&quot;, values_to = &quot;intensity&quot;) %&gt;% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %&gt;% 
+  mutate(samples = gsub(pattern = &quot;^.*\\.&quot;, replacement = &quot;&quot;, samples)) %&gt;% 
+  pivot_wider(names_from = samples, values_from = intensity) %&gt;% 
+  as.data.frame() %&gt;% 
+  upset(nsets = 6,
+        sets = define_set,
+        #order.by = &quot;degree&quot;,
+        order.by = &quot;freq&quot;,
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c(&quot;coral2&quot;, &quot;turquoise3&quot;), each = 3),
+        main.bar.color  = &quot;gray44&quot;)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/up_2-1.png" width="1440" style="display: block; margin: auto;" /></p>
+</div>
+<div id="upset-plot-5ug" class="section level4">
+<h4>Upset plot 5ug</h4>
+<pre class="r"><code>define_set &lt;- c(&quot;iST_5ug_1&quot;, &quot;iST_5ug_2&quot;, &quot;iST_5ug_3&quot;, &quot;SP3_5ug_1&quot;, &quot;SP3_5ug_2&quot;, &quot;SP3_5ug_3&quot;)
+
+data_unique %&gt;%
+  as.data.frame() %&gt;%
+  select(starts_with(c(&quot;name&quot;, &quot;Intensity.&quot;))) %&gt;%
+  ## define combination of interest in the original dataset
+  select(starts_with(&quot;name&quot;) | contains(&quot;ug&quot;) &amp; !contains(&quot;AddOn&quot;) &amp; !contains(&quot;HpH&quot;)) %&gt;% 
+  pivot_longer(!name, names_to = &quot;samples&quot;, values_to = &quot;intensity&quot;) %&gt;% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %&gt;% 
+  mutate(samples = gsub(pattern = &quot;^.*\\.&quot;, replacement = &quot;&quot;, samples)) %&gt;% 
+  pivot_wider(names_from = samples, values_from = intensity) %&gt;% 
+  as.data.frame() %&gt;% 
+  upset(nsets = 6,
+        sets = define_set,
+        #order.by = &quot;degree&quot;,
+        order.by = &quot;freq&quot;,
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c(&quot;coral2&quot;, &quot;turquoise3&quot;), each = 3),
+        main.bar.color  = &quot;gray44&quot;)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/up_3-1.png" width="1440" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="titration-lcm-ist-vs-sp3" class="section level3 tabset tabset-fade">
+<h3>Titration <strong>LCM</strong> iST vs SP3</h3>
+<p>In this analysis I compare the different number of protein identify in the two conditions <strong>LCM-iST</strong> and <strong>LCM-iST + SP3</strong> taking into account the different cells used: <em>1000</em>, <em>500</em>, <em>250</em> <em>125</em> and <em>50</em>.</p>
+<pre class="r"><code>expdesign &lt;- read.table(here::here(&quot;data/expdesign_2.tsv&quot;), header = T, stringsAsFactors = F)
+
+conditions&lt;-c(&quot;LCM_iST_1000&quot;, &quot;LCM_iST_500&quot;, &quot;LCM_iST_250&quot;, &quot;LCM_iST_125&quot;, &quot;LCM_iST_50&quot;,
+              &quot;LCM_SP3_1000&quot;, &quot;LCM_SP3_500&quot;, &quot;LCM_SP3_250&quot;, &quot;LCM_SP3_125&quot;, &quot;LCM_SP3_50&quot;)
+#conditions&lt;-c(&quot;Fractination_8_iST&quot;, &quot;Fractination_6_iST&quot;, &quot;Fractination_3_iST_AddOn&quot;)
+
+expdesign &lt;- subset(expdesign, condition %in% conditions)
+
+columns&lt;-match(paste(&quot;Intensity.&quot;,expdesign$label,sep=&quot;&quot;),colnames(data_unique))
+
+Titration &lt;- make_se(data_unique, columns, expdesign)</code></pre>
+<div id="protein-per-sapmle-1" class="section level4">
+<h4>Protein per sapmle</h4>
+<pre class="r"><code>plot_numbers_lables(Titration, sub_title = &quot;Titration LCM&quot;, intercept = F, lab_size = 10)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/plot_numb_2-1.png" width="1440" style="display: block; margin: auto;" /></p>
+</div>
+<div id="distibution-of-each-sample-1" class="section level4">
+<h4>Distibution of each sample</h4>
+<pre class="r"><code>plot_normalization(Titration)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/plot_norm_2-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="upset-plot-1000" class="section level4">
+<h4>Upset plot 1000</h4>
+<pre class="r"><code>define_set &lt;- c(&quot;iST_1000_LMC_1&quot;, &quot;iST_1000_LMC_2&quot;, &quot;SP3_1000_LMC_1&quot;, &quot;SP3_1000_LMC_2&quot;)
+
+data_unique %&gt;%
+  as.data.frame() %&gt;%
+  select(starts_with(c(&quot;name&quot;, &quot;Intensity.&quot;))) %&gt;%
+  ## define combination of interest in the original dataset
+  select(starts_with(&quot;name&quot;) | contains(&quot;LMC&quot;)) %&gt;% 
+  pivot_longer(!name, names_to = &quot;samples&quot;, values_to = &quot;intensity&quot;) %&gt;% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %&gt;% 
+  mutate(samples = gsub(pattern = &quot;^.*\\.&quot;, replacement = &quot;&quot;, samples)) %&gt;% 
+  pivot_wider(names_from = samples, values_from = intensity) %&gt;% 
+  as.data.frame() %&gt;% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = &quot;degree&quot;,
+        order.by = &quot;freq&quot;,
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c(&quot;coral2&quot;, &quot;turquoise3&quot;), each = 2),
+        main.bar.color  = &quot;gray44&quot;)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/up_1.1-1.png" width="1440" style="display: block; margin: auto;" /></p>
+</div>
+<div id="upset-plot-500" class="section level4">
+<h4>Upset plot 500</h4>
+<pre class="r"><code>define_set &lt;- c(&quot;iST_500_LMC_1&quot;, &quot;iST_500_LMC_2&quot;, &quot;SP3_500_LMC_1&quot;, &quot;SP3_500_LMC_2&quot;)
+
+data_unique %&gt;%
+  as.data.frame() %&gt;%
+  select(starts_with(c(&quot;name&quot;, &quot;Intensity.&quot;))) %&gt;%
+  ## define combination of interest in the original dataset
+  select(starts_with(&quot;name&quot;) | contains(&quot;LMC&quot;)) %&gt;% 
+  pivot_longer(!name, names_to = &quot;samples&quot;, values_to = &quot;intensity&quot;) %&gt;% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %&gt;% 
+  mutate(samples = gsub(pattern = &quot;^.*\\.&quot;, replacement = &quot;&quot;, samples)) %&gt;% 
+  pivot_wider(names_from = samples, values_from = intensity) %&gt;% 
+  as.data.frame() %&gt;% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = &quot;degree&quot;,
+        order.by = &quot;freq&quot;,
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c(&quot;coral2&quot;, &quot;turquoise3&quot;), each = 2),
+        main.bar.color  = &quot;gray44&quot;)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/up_2.1-1.png" width="1440" style="display: block; margin: auto;" /></p>
+</div>
+<div id="upset-plot-250" class="section level4">
+<h4>Upset plot 250</h4>
+<pre class="r"><code>define_set &lt;- c(&quot;iST_250_LMC_1&quot;, &quot;iST_250_LMC_2&quot;, &quot;SP3_250_LMC_1&quot;, &quot;SP3_250_LMC_2&quot;)
+
+data_unique %&gt;%
+  as.data.frame() %&gt;%
+  select(starts_with(c(&quot;name&quot;, &quot;Intensity.&quot;))) %&gt;%
+  ## define combination of interest in the original dataset
+  select(starts_with(&quot;name&quot;) | contains(&quot;LMC&quot;)) %&gt;% 
+  pivot_longer(!name, names_to = &quot;samples&quot;, values_to = &quot;intensity&quot;) %&gt;% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %&gt;% 
+  mutate(samples = gsub(pattern = &quot;^.*\\.&quot;, replacement = &quot;&quot;, samples)) %&gt;% 
+  pivot_wider(names_from = samples, values_from = intensity) %&gt;% 
+  as.data.frame() %&gt;% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = &quot;degree&quot;,
+        order.by = &quot;freq&quot;,
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c(&quot;coral2&quot;, &quot;turquoise3&quot;), each = 2),
+        main.bar.color  = &quot;gray44&quot;)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/up_3.1-1.png" width="1440" style="display: block; margin: auto;" /></p>
+</div>
+<div id="upset-plot-125" class="section level4">
+<h4>Upset plot 125</h4>
+<pre class="r"><code>define_set &lt;- c(&quot;iST_125_LMC_1&quot;, &quot;iST_125_LMC_2&quot;, &quot;SP3_125_LMC_1&quot;, &quot;SP3_125_LMC_2&quot;)
+
+data_unique %&gt;%
+  as.data.frame() %&gt;%
+  select(starts_with(c(&quot;name&quot;, &quot;Intensity.&quot;))) %&gt;%
+  ## define combination of interest in the original dataset
+  select(starts_with(&quot;name&quot;) | contains(&quot;LMC&quot;)) %&gt;% 
+  pivot_longer(!name, names_to = &quot;samples&quot;, values_to = &quot;intensity&quot;) %&gt;% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %&gt;% 
+  mutate(samples = gsub(pattern = &quot;^.*\\.&quot;, replacement = &quot;&quot;, samples)) %&gt;% 
+  pivot_wider(names_from = samples, values_from = intensity) %&gt;% 
+  as.data.frame() %&gt;% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = &quot;degree&quot;,
+        order.by = &quot;freq&quot;,
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c(&quot;coral2&quot;, &quot;turquoise3&quot;), each = 2),
+        main.bar.color  = &quot;gray44&quot;)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/up_4.1-1.png" width="1440" style="display: block; margin: auto;" /></p>
+</div>
+<div id="upset-plot-50-cells" class="section level4">
+<h4>Upset plot 50 cells</h4>
+<pre class="r"><code>define_set &lt;- c(&quot;iST_50_LMC_1&quot;, &quot;iST_50_LMC_2&quot;, &quot;SP3_50_LMC_1&quot;, &quot;SP3_50_LMC_2&quot;)
+
+data_unique %&gt;%
+  as.data.frame() %&gt;%
+  select(starts_with(c(&quot;name&quot;, &quot;Intensity.&quot;))) %&gt;%
+  ## define combination of interest in the original dataset
+  select(starts_with(&quot;name&quot;) | contains(&quot;LMC&quot;)) %&gt;% 
+  pivot_longer(!name, names_to = &quot;samples&quot;, values_to = &quot;intensity&quot;) %&gt;% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %&gt;% 
+  mutate(samples = gsub(pattern = &quot;^.*\\.&quot;, replacement = &quot;&quot;, samples)) %&gt;% 
+  pivot_wider(names_from = samples, values_from = intensity) %&gt;% 
+  as.data.frame() %&gt;% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = &quot;degree&quot;,
+        order.by = &quot;freq&quot;,
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c(&quot;coral2&quot;, &quot;turquoise3&quot;), each = 2),
+        main.bar.color  = &quot;gray44&quot;)</code></pre>
+<p><img src="figure/comparison_iST_vs_SP3.Rmd/up_5.1-1.png" width="1440" style="display: block; margin: auto;" /></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.0.3 (2020-10-10)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 10 x64 (build 19042)
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=Italian_Italy.1252  LC_CTYPE=Italian_Italy.1252   
+[3] LC_MONETARY=Italian_Italy.1252 LC_NUMERIC=C                  
+[5] LC_TIME=Italian_Italy.1252    
+
+attached base packages:
+[1] parallel  stats4    stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] ggrepel_0.9.1               UpSetR_1.4.0               
+ [3] ggstatsplot_0.7.2           datapasta_3.1.0            
+ [5] here_1.0.1                  patchwork_1.1.1            
+ [7] stringr_1.4.0               DT_0.18                    
+ [9] enrichR_3.0                 ggplot2_3.3.3              
+[11] tibble_3.1.0                preprocessCore_1.52.1      
+[13] SummarizedExperiment_1.20.0 Biobase_2.50.0             
+[15] GenomicRanges_1.42.0        GenomeInfoDb_1.26.2        
+[17] IRanges_2.24.1              S4Vectors_0.28.1           
+[19] BiocGenerics_0.36.0         MatrixGenerics_1.2.1       
+[21] matrixStats_0.58.0          DEP_1.12.0                 
+[23] tidyr_1.1.3                 dplyr_1.0.5                
+[25] MBQN_2.2.0                  workflowr_1.6.2            
+
+loaded via a namespace (and not attached):
+  [1] utf8_1.2.1                shinydashboard_0.7.1     
+  [3] gmm_1.6-6                 tidyselect_1.1.1         
+  [5] RSQLite_2.2.5             htmlwidgets_1.5.3        
+  [7] grid_4.0.3                BiocParallel_1.24.1      
+  [9] gmp_0.6-2                 norm_1.0-9.5             
+ [11] munsell_0.5.0             codetools_0.2-16         
+ [13] effectsize_0.4.4-1        withr_2.4.2              
+ [15] colorspace_2.0-0          highr_0.8                
+ [17] knitr_1.31                ipmisc_6.0.2             
+ [19] ggsignif_0.6.1            mzID_1.28.0              
+ [21] labeling_0.4.2            git2r_0.28.0             
+ [23] GenomeInfoDbData_1.2.4    farver_2.1.0             
+ [25] bit64_4.0.5               rprojroot_2.0.2          
+ [27] coda_0.19-4               vctrs_0.3.7              
+ [29] generics_0.1.0            xfun_0.23                
+ [31] BiocFileCache_1.14.0      BWStest_0.2.2            
+ [33] R6_2.5.0                  doParallel_1.0.16        
+ [35] clue_0.3-58               BayesFactor_0.9.12-4.2   
+ [37] bitops_1.0-6              cachem_1.0.4             
+ [39] reshape_0.8.8             DelayedArray_0.16.2      
+ [41] assertthat_0.2.1          promises_1.2.0.1         
+ [43] scales_1.1.1              gtable_0.3.0             
+ [45] Cairo_1.5-12.2            affy_1.68.0              
+ [47] multcompView_0.1-8        sandwich_3.0-0           
+ [49] rlang_0.4.10              MatrixModels_0.5-0       
+ [51] zeallot_0.1.0             mzR_2.24.1               
+ [53] GlobalOptions_0.1.2       PMCMRplus_1.9.0          
+ [55] impute_1.64.0             BiocManager_1.30.10      
+ [57] yaml_2.2.1                httpuv_1.5.5             
+ [59] tools_4.0.3               affyio_1.60.0            
+ [61] ellipsis_0.3.1            jquerylib_0.1.3          
+ [63] RColorBrewer_1.1-2        WRS2_1.1-1               
+ [65] MSnbase_2.15.7            Rcpp_1.0.6               
+ [67] plyr_1.8.6                zlibbioc_1.36.0          
+ [69] purrr_0.3.4               RCurl_1.98-1.2           
+ [71] pbapply_1.4-3             GetoptLong_1.0.5         
+ [73] correlation_0.6.1         zoo_1.8-9                
+ [75] cluster_2.1.0             fs_1.5.0                 
+ [77] magrittr_2.0.1            circlize_0.4.12          
+ [79] pcaMethods_1.82.0         mvtnorm_1.1-1            
+ [81] whisker_0.4               ProtGenerics_1.22.0      
+ [83] hms_1.0.0                 mime_0.10                
+ [85] evaluate_0.14             xtable_1.8-4             
+ [87] XML_3.99-0.6              pairwiseComparisons_3.1.5
+ [89] gridExtra_2.3             shape_1.4.5              
+ [91] compiler_4.0.3            ncdf4_1.17               
+ [93] crayon_1.4.1              htmltools_0.5.1.1        
+ [95] mc2d_0.1-19               later_1.1.0.1            
+ [97] DBI_1.1.1                 SuppDists_1.1-9.5        
+ [99] kSamples_1.2-9            dbplyr_2.1.1             
+[101] ComplexHeatmap_2.6.2      MASS_7.3-53              
+[103] tmvtnorm_1.4-10           rappdirs_0.3.3           
+[105] Matrix_1.2-18             readr_1.4.0              
+[107] vsn_3.58.0                imputeLCMD_2.0           
+[109] insight_0.14.0            pkgconfig_2.0.3          
+[111] statsExpressions_1.0.1    MALDIquant_1.19.3        
+[113] paletteer_1.3.0           foreach_1.5.1            
+[115] bslib_0.2.4               ggcorrplot_0.1.3         
+[117] XVector_0.30.0            digest_0.6.27            
+[119] parameters_0.13.0         rmarkdown_2.7            
+[121] curl_4.3                  shiny_1.6.0              
+[123] gtools_3.8.2              rjson_0.2.20             
+[125] lifecycle_1.0.0           jsonlite_1.7.2           
+[127] limma_3.46.0              fansi_0.4.2              
+[129] pillar_1.6.0              lattice_0.20-41          
+[131] fastmap_1.1.0             httr_1.4.2               
+[133] glue_1.4.2                bayestestR_0.9.0         
+[135] png_0.1-7                 iterators_1.0.13         
+[137] bit_4.0.4                 stringi_1.5.3            
+[139] sass_0.3.1                performance_0.7.1        
+[141] rematch2_2.1.2            blob_1.2.1               
+[143] memoise_2.0.0             Rmpfr_0.8-4              </code></pre>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
