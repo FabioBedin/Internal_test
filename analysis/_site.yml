@@ -1,17 +1,20 @@
-name: "Internal_test"
+name: Internal_test
 output_dir: ../docs
 navbar:
-  title: "Internal_test"
+  title: Internal_test
   left:
   - text: Home
     href: index.html
-  - text: About
-    href: about.html
-  - text: License
-    href: license.html
+  right:
+  - icon: fa-github
+    text: Source code
+    href: https://github.com/FabioBedin/Internal_test
 output:
   workflowr::wflow_html:
     toc: yes
     toc_float: yes
     theme: cosmo
     highlight: textmate
+    code_folding: hide
+    fig_caption: yes
+    df_print: paged
