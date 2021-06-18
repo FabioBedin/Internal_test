@@ -1,0 +1,1838 @@
+---
+title: "iST vs SP3 with fractionation"
+author: "Fabio Bedin | MS-Unit"
+output: html_document
+---
+
+```{r librerie, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(fig.align = "center", warning = FALSE, message = FALSE, fig.height = 10, fig.width = 10)
+library("MBQN")
+library("dplyr")
+library("tidyr")
+library("DEP")
+library("SummarizedExperiment")
+library("preprocessCore")
+library("tibble")
+library("ggplot2")
+library("enrichR")
+library("DT")
+library("stringr")
+library("patchwork")
+library("here")
+library("datapasta")
+library("ggstatsplot")
+library("UpSetR")
+library("ggrepel")
+```
+
+```{r Custom Functions}
+
+source(here::here("code/custom_functions.R"))
+
+```
+
+## Introduction {.tabset .tabset-fade .tabset-pills}
+
+***
+scrivere qualcosa...
+
+```{r input_Data}
+data <- read.csv(here::here("data/proteinGroups_iST_SP3_HpH_Add_on.txt"), header = TRUE,stringsAsFactors = FALSE, sep = "\t")
+
+data <- data[data$Reverse != "+" & data$Potential.contaminant != "+" & data$Only.identified.by.site != "+",]
+
+data_unique <- make_unique(data, "Gene.names", "Protein.IDs", delim = ";")
+
+peptides <- read.csv(here::here("data/peptides.txt"), header = TRUE,stringsAsFactors = FALSE, sep = "\t")
+
+peptides <- peptides[peptides$Reverse != "+" & peptides$Potential.contaminant != "+",]
+
+peptides_unique <- make_unique(peptides, "Gene.names", "Leading.razor.protein", delim = ";")
+```
+
+### Fractionation **8** iST vs SP3 {.tabset .tabset-fade}
+
+In this analysis I compare the different number of protein identify in the two conditions **iST** and **iST + SP3** where we perform HpH fractionation with 8 fractions.
+
+```{r exp_1}
+expdesign <- read.table(here::here("data/expdesign_2.tsv"), header = T, stringsAsFactors = F)
+
+conditions<-c("Fraz_8_iST_HpH", "Fraz_8_SP3_HpH")
+
+expdesign <- subset(expdesign, condition %in% conditions)
+
+columns<-match(paste("Intensity.",expdesign$label,sep=""),colnames(data_unique))
+
+Fractionation <- make_se(data_unique, columns, expdesign)
+```
+
+#### Protein per sapmle
+
+```{r plot_numb_1, warning=FALSE,fig.height = 13, fig.width = 15}
+plot_numbers_lables(Fractionation, sub_title = "Fractionation 8", lab_size = 10, b_size = 15)
+```
+
+#### Distibution of each sample
+
+```{r plot_norm_1, fig.height = 10, fig.width = 10}
+plot_normalization(Fractionation)
+#plot_pca(Fractionation, n = 500, indicate = "condition", label = T)
+```
+
+#### Upset plot Fractionation 8
+
+```{r up_1, fig.height = 13, fig.width = 15}
+define_set <- c("iST_50ug_HpH8_1", "iST_50ug_HpH8_2", "SP3_50ug_HpH8_1", "SP3_50ug_HpH8_2")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("HpH")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 2),
+        main.bar.color  = "gray44")
+  
+```
+
+
+#### N° peptides {.tabset .tabset-fade}
+
+```{r test_1}
+# peptides_unique %>%
+#   as.data.frame() %>% colnames()
+
+# p <- peptides_unique %>% 
+#   as.data.frame() %>% 
+#   select(starts_with("Fraction.") | starts_with("Charges") | starts_with("name")) %>% 
+#   select(starts_with("name") | contains(as.character(19:34))) %>% 
+#   pivot_longer(!name, "fraction", "peptides") %>% 
+#   # mutate(value = case_when(is.na(value) ~ 0, TRUE ~ 1)) %>%
+#   mutate(value = case_when(is.na(value) ~ 0, TRUE ~ as.numeric(value))) %>%
+#   mutate(fraction = case_when(fraction == "Fraction.19" | fraction == "Fraction.27" ~ "fraction_1",
+#                               fraction == "Fraction.20" | fraction == "Fraction.28" ~ "fraction_2",
+#                               fraction == "Fraction.21" | fraction == "Fraction.29" ~ "fraction_3",
+#                               fraction == "Fraction.22" | fraction == "Fraction.30" ~ "fraction_4",
+#                               fraction == "Fraction.23" | fraction == "Fraction.31" ~ "fraction_5",
+#                               fraction == "Fraction.24" | fraction == "Fraction.32" ~ "fraction_6",
+#                               fraction == "Fraction.25" | fraction == "Fraction.33" ~ "fraction_7",
+#                               fraction == "Fraction.26" | fraction == "Fraction.34" ~ "fraction_8")) %>% 
+#   group_by(name, fraction) %>%
+#   summarise(across(value, .fns = sum), .groups = "drop") %>% 
+#   # summarise(across(value, .fns = list(sum = sum, sd = sd)), .groups = "drop") %>% 
+#   group_by(fraction) %>% 
+#   summarise(n_peptides = sum(value)) %>% 
+#   # summarise(across(c(value_sum, value_sd), .fns = sum), .groups = "drop") %>% 
+#   # mutate(value_sd = value_sd/47727)
+#   ungroup()
+# 
+# ggplot(p, mapping = aes(x=fraction, y=n_peptides)) +
+#   geom_bar(stat="identity", fill="coral2")+
+#   geom_text(aes(label=n_peptides), vjust=-0.3, size=10)+
+#   labs(x = "Replicates", y = "n° peptides")+
+#   theme(axis.text.x = element_text(size=35, angle=0),
+#         axis.text.y = element_text(size=35, angle=45),
+#         axis.title=element_text(size=40)) +
+#   ylim(0, 25000) +
+#   theme_DEP2()
+
+```
+
+##### iST 
+
+```{r r n_peptides_iST, fig.height = 20, fig.width = 15}
+a <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(19:34))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.19" | fraction == "Fraction.27" ~ "1",
+                              fraction == "Fraction.20" | fraction == "Fraction.28" ~ "2",
+                              fraction == "Fraction.21" | fraction == "Fraction.29" ~ "3",
+                              fraction == "Fraction.22" | fraction == "Fraction.30" ~ "4",
+                              fraction == "Fraction.23" | fraction == "Fraction.31" ~ "5",
+                              fraction == "Fraction.24" | fraction == "Fraction.32" ~ "6",
+                              fraction == "Fraction.25" | fraction == "Fraction.33" ~ "7",
+                              fraction == "Fraction.26" | fraction == "Fraction.34" ~ "8")) %>%
+  group_by(fraction) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(19:26))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.19" ~ "1",
+                              fraction == "Fraction.20" ~ "2",
+                              fraction == "Fraction.21" ~ "3",
+                              fraction == "Fraction.22" ~ "4",
+                              fraction == "Fraction.23" ~ "5",
+                              fraction == "Fraction.24" ~ "6",
+                              fraction == "Fraction.25" ~ "7",
+                              fraction == "Fraction.26" ~ "8")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")
+
+
+c <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(27:34))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.27" ~ "1",
+                              fraction == "Fraction.28" ~ "2",
+                              fraction == "Fraction.29" ~ "3",
+                              fraction == "Fraction.30" ~ "4",
+                              fraction == "Fraction.31" ~ "5",
+                              fraction == "Fraction.32" ~ "6",
+                              fraction == "Fraction.33" ~ "7",
+                              fraction == "Fraction.34" ~ "8")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,11000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,11000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+  
+```
+
+##### SP3
+
+```{r n_peptides_SP3, fig.height = 20, fig.width = 15}
+
+a <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(35:50))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.35" | fraction == "Fraction.43" ~ "1",
+                              fraction == "Fraction.36" | fraction == "Fraction.44" ~ "2",
+                              fraction == "Fraction.37" | fraction == "Fraction.45" ~ "3",
+                              fraction == "Fraction.38" | fraction == "Fraction.46" ~ "4",
+                              fraction == "Fraction.39" | fraction == "Fraction.47" ~ "5",
+                              fraction == "Fraction.40" | fraction == "Fraction.48" ~ "6",
+                              fraction == "Fraction.41" | fraction == "Fraction.49" ~ "7",
+                              fraction == "Fraction.42" | fraction == "Fraction.50" ~ "8")) %>%
+  group_by(fraction) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(35:42))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.35" ~ "1",
+                              fraction == "Fraction.36" ~ "2",
+                              fraction == "Fraction.37" ~ "3",
+                              fraction == "Fraction.38" ~ "4",
+                              fraction == "Fraction.39" ~ "5",
+                              fraction == "Fraction.40" ~ "6",
+                              fraction == "Fraction.41" ~ "7",
+                              fraction == "Fraction.42" ~ "8")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")
+
+
+c <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(43:50))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.43" ~ "1",
+                              fraction == "Fraction.44" ~ "2",
+                              fraction == "Fraction.45" ~ "3",
+                              fraction == "Fraction.46" ~ "4",
+                              fraction == "Fraction.47" ~ "5",
+                              fraction == "Fraction.48" ~ "6",
+                              fraction == "Fraction.49" ~ "7",
+                              fraction == "Fraction.50" ~ "8")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,11000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,11000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+```
+
+#### N° proteins {.tabset .tabset-fade}
+
+##### iST
+
+
+```{r n_proteins_iST_2, fig.height = 20, fig.width = 15}
+a <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(19:34))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.19" | fraction == "Fraction.27" ~ "1",
+                              fraction == "Fraction.20" | fraction == "Fraction.28" ~ "2",
+                              fraction == "Fraction.21" | fraction == "Fraction.29" ~ "3",
+                              fraction == "Fraction.22" | fraction == "Fraction.30" ~ "4",
+                              fraction == "Fraction.23" | fraction == "Fraction.31" ~ "5",
+                              fraction == "Fraction.24" | fraction == "Fraction.32" ~ "6",
+                              fraction == "Fraction.25" | fraction == "Fraction.33" ~ "7",
+                              fraction == "Fraction.26" | fraction == "Fraction.34" ~ "8")) %>%
+  group_by(fraction) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(19:26))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.19" ~ "1",
+                              fraction == "Fraction.20" ~ "2",
+                              fraction == "Fraction.21" ~ "3",
+                              fraction == "Fraction.22" ~ "4",
+                              fraction == "Fraction.23" ~ "5",
+                              fraction == "Fraction.24" ~ "6",
+                              fraction == "Fraction.25" ~ "7",
+                              fraction == "Fraction.26" ~ "8")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")
+
+
+c <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(27:34))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.27" ~ "1",
+                              fraction == "Fraction.28" ~ "2",
+                              fraction == "Fraction.29" ~ "3",
+                              fraction == "Fraction.30" ~ "4",
+                              fraction == "Fraction.31" ~ "5",
+                              fraction == "Fraction.32" ~ "6",
+                              fraction == "Fraction.33" ~ "7",
+                              fraction == "Fraction.34" ~ "8")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,3500))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,3500))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+
+```
+
+##### SP3
+
+```{r n_proteins_SP3_2, fig.height = 20, fig.width = 15}
+a <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(35:50))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.35" | fraction == "Fraction.43" ~ "1",
+                              fraction == "Fraction.36" | fraction == "Fraction.44" ~ "2",
+                              fraction == "Fraction.37" | fraction == "Fraction.45" ~ "3",
+                              fraction == "Fraction.38" | fraction == "Fraction.46" ~ "4",
+                              fraction == "Fraction.39" | fraction == "Fraction.47" ~ "5",
+                              fraction == "Fraction.40" | fraction == "Fraction.48" ~ "6",
+                              fraction == "Fraction.41" | fraction == "Fraction.49" ~ "7",
+                              fraction == "Fraction.42" | fraction == "Fraction.50" ~ "8")) %>%
+  group_by(fraction) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(35:42))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.35" ~ "1",
+                              fraction == "Fraction.36" ~ "2",
+                              fraction == "Fraction.37" ~ "3",
+                              fraction == "Fraction.38" ~ "4",
+                              fraction == "Fraction.39" ~ "5",
+                              fraction == "Fraction.40" ~ "6",
+                              fraction == "Fraction.41" ~ "7",
+                              fraction == "Fraction.42" ~ "8")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")
+
+
+c <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(43:50))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.43" ~ "1",
+                              fraction == "Fraction.44" ~ "2",
+                              fraction == "Fraction.45" ~ "3",
+                              fraction == "Fraction.46" ~ "4",
+                              fraction == "Fraction.47" ~ "5",
+                              fraction == "Fraction.48" ~ "6",
+                              fraction == "Fraction.49" ~ "7",
+                              fraction == "Fraction.50" ~ "8")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,3500))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,3500))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+
+```
+
+### Fractionation **6** iST vs SP3 {.tabset .tabset-fade}
+
+In this analysis I compare the different number of protein identify in the two conditions **iST** and **iST + SP3** where we perform HpH fractionation with 6 fractions.
+
+```{r exp_2}
+expdesign <- read.table(here::here("data/expdesign_2.tsv"), header = T, stringsAsFactors = F)
+
+conditions<-c("Fraz_6_iST_HpH", "Fraz_6_SP3_HpH")
+
+expdesign <- subset(expdesign, condition %in% conditions)
+
+columns<-match(paste("Intensity.",expdesign$label,sep=""),colnames(data_unique))
+
+Fractionation <- make_se(data_unique, columns, expdesign)
+```
+
+#### Protein per sapmle
+
+```{r plot_numb_2, warning=FALSE,fig.height = 13, fig.width = 15}
+plot_numbers_lables(Fractionation, sub_title = "Fractionation 6", lab_size = 10, b_size = 15)
+```
+
+#### Distibution of each sample
+
+```{r plot_norm_2, fig.height = 10, fig.width = 10}
+plot_normalization(Fractionation)
+```
+
+#### Upset plot Fractionation 6
+
+```{r up_2, fig.height = 13, fig.width = 15}
+define_set <- c("iST_50ug_HpH6_1", "iST_50ug_HpH6_2", "SP3_50ug_HpH6_1", "SP3_50ug_HpH8_2")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("HpH")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 2),
+        main.bar.color  = "gray44")
+  
+```
+
+#### N° peptides {.tabset .tabset-fade}
+
+##### iST
+
+```{r n_peptides_iST_22, fig.height = 20, fig.width = 15}
+a <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(51:62))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.51" | fraction == "Fraction.57" ~ "1",
+                              fraction == "Fraction.52" | fraction == "Fraction.58" ~ "2",
+                              fraction == "Fraction.53" | fraction == "Fraction.59" ~ "3",
+                              fraction == "Fraction.54" | fraction == "Fraction.60" ~ "4",
+                              fraction == "Fraction.55" | fraction == "Fraction.61" ~ "5",
+                              fraction == "Fraction.56" | fraction == "Fraction.62" ~ "6")) %>%
+  group_by(fraction) %>% 
+  mutate(sum = case_when(sum == 1554 ~ 7012, TRUE ~ as.numeric(sum))) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(51:56))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.51" ~ "1",
+                              fraction == "Fraction.52" ~ "2",
+                              fraction == "Fraction.53" ~ "3",
+                              fraction == "Fraction.54" ~ "4",
+                              fraction == "Fraction.55" ~ "5",
+                              fraction == "Fraction.56" ~ "6")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique") %>% 
+  mutate(rep_1 = case_when(rep_1 == 581 ~ 4014, TRUE ~ as.numeric(rep_1)))
+
+
+c <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(57:62))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.57" ~ "1",
+                              fraction == "Fraction.58" ~ "2",
+                              fraction == "Fraction.59" ~ "3",
+                              fraction == "Fraction.60" ~ "4",
+                              fraction == "Fraction.61" ~ "5",
+                              fraction == "Fraction.62" ~ "6")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,11000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,11000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+```
+
+##### SP3
+
+```{r n_peptides_SP3_22, fig.height = 20, fig.width = 15}
+a <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(63:74))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.63" | fraction == "Fraction.69" ~ "1",
+                              fraction == "Fraction.64" | fraction == "Fraction.70" ~ "2",
+                              fraction == "Fraction.65" | fraction == "Fraction.71" ~ "3",
+                              fraction == "Fraction.66" | fraction == "Fraction.72" ~ "4",
+                              fraction == "Fraction.67" | fraction == "Fraction.73" ~ "5",
+                              fraction == "Fraction.68" | fraction == "Fraction.74" ~ "6")) %>%
+  group_by(fraction) %>% 
+  #mutate(sum = case_when(sum == 1554 ~ 7012, TRUE ~ as.numeric(sum))) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(63:68))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.63" ~ "1",
+                              fraction == "Fraction.64" ~ "2",
+                              fraction == "Fraction.65" ~ "3",
+                              fraction == "Fraction.66" ~ "4",
+                              fraction == "Fraction.67" ~ "5",
+                              fraction == "Fraction.68" ~ "6")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")  
+  #mutate(rep_1 = case_when(rep_1 == 581 ~ 4014, TRUE ~ as.numeric(rep_1)))
+
+
+c <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(69:74))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.69" ~ "1",
+                              fraction == "Fraction.70" ~ "2",
+                              fraction == "Fraction.71" ~ "3",
+                              fraction == "Fraction.72" ~ "4",
+                              fraction == "Fraction.73" ~ "5",
+                              fraction == "Fraction.74" ~ "6")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,11000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,11000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+```
+
+#### N° proteins {.tabset .tabset-fade}
+
+##### iST
+
+```{r n_proteins_iST_22, fig.height = 20, fig.width = 15}
+a <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(51:62))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.51" | fraction == "Fraction.57" ~ "1",
+                              fraction == "Fraction.52" | fraction == "Fraction.58" ~ "2",
+                              fraction == "Fraction.53" | fraction == "Fraction.59" ~ "3",
+                              fraction == "Fraction.54" | fraction == "Fraction.60" ~ "4",
+                              fraction == "Fraction.55" | fraction == "Fraction.61" ~ "5",
+                              fraction == "Fraction.56" | fraction == "Fraction.62" ~ "6")) %>%
+  group_by(fraction) %>% 
+  #mutate(sum = case_when(sum == 1554 ~ 7012, TRUE ~ as.numeric(sum))) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(51:56))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.51" ~ "1",
+                              fraction == "Fraction.52" ~ "2",
+                              fraction == "Fraction.53" ~ "3",
+                              fraction == "Fraction.54" ~ "4",
+                              fraction == "Fraction.55" ~ "5",
+                              fraction == "Fraction.56" ~ "6")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")  
+  #mutate(rep_1 = case_when(rep_1 == 581 ~ 4014, TRUE ~ as.numeric(rep_1)))
+
+
+c <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(57:62))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.57" ~ "1",
+                              fraction == "Fraction.58" ~ "2",
+                              fraction == "Fraction.59" ~ "3",
+                              fraction == "Fraction.60" ~ "4",
+                              fraction == "Fraction.61" ~ "5",
+                              fraction == "Fraction.62" ~ "6")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,3500))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,3500))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+```
+
+##### SP3
+
+```{r n_proteins_SP3_22, fig.height = 20, fig.width = 15}
+a <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(63:74))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.63" | fraction == "Fraction.69" ~ "1",
+                              fraction == "Fraction.64" | fraction == "Fraction.70" ~ "2",
+                              fraction == "Fraction.65" | fraction == "Fraction.71" ~ "3",
+                              fraction == "Fraction.66" | fraction == "Fraction.72" ~ "4",
+                              fraction == "Fraction.67" | fraction == "Fraction.73" ~ "5",
+                              fraction == "Fraction.68" | fraction == "Fraction.74" ~ "6")) %>%
+  group_by(fraction) %>% 
+  #mutate(sum = case_when(sum == 1554 ~ 7012, TRUE ~ as.numeric(sum))) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(63:68))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.63" ~ "1",
+                              fraction == "Fraction.64" ~ "2",
+                              fraction == "Fraction.65" ~ "3",
+                              fraction == "Fraction.66" ~ "4",
+                              fraction == "Fraction.67" ~ "5",
+                              fraction == "Fraction.68" ~ "6")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")  
+  #mutate(rep_1 = case_when(rep_1 == 581 ~ 4014, TRUE ~ as.numeric(rep_1)))
+
+
+c <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(69:74))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.69" ~ "1",
+                              fraction == "Fraction.70" ~ "2",
+                              fraction == "Fraction.71" ~ "3",
+                              fraction == "Fraction.72" ~ "4",
+                              fraction == "Fraction.73" ~ "5",
+                              fraction == "Fraction.74" ~ "6")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,3500))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,3500))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+```
+
+
+### Fractionation **3** iST vs SP3 {.tabset .tabset-fade}
+
+In this analysis I compare the different number of protein identify in the two conditions **iST** and **iST + SP3** where we perform AddOn fractionation with 3 fractions.
+
+```{r exp_3}
+expdesign <- read.table(here::here("data/expdesign_2.tsv"), header = T, stringsAsFactors = F)
+
+conditions<-c("Fraz_3_iST_AddOn", "Fraz_3_SP3_AddOn")
+
+expdesign <- subset(expdesign, condition %in% conditions)
+
+columns<-match(paste("Intensity.",expdesign$label,sep=""),colnames(data_unique))
+
+Fractionation <- make_se(data_unique, columns, expdesign)
+```
+
+#### Protein per sapmle
+
+```{r plot_numb_3, warning=FALSE,fig.height = 13, fig.width = 15}
+plot_numbers_lables(Fractionation, sub_title = "Fractionation 3", lab_size = 10, b_size = 15)
+```
+
+#### Distibution of each sample
+
+```{r plot_norm_3, fig.height = 10, fig.width = 10}
+plot_normalization(Fractionation)
+```
+
+#### Upset plot Fractionation 3
+
+```{r up_3, fig.height = 13, fig.width = 15}
+define_set <- c("iST_50ug_AddOn_1", "iST_50ug_AddOn_2", "SP3_50ug_AddOn_1", "SP3_50ug_AddOn_2")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("AddOn")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 2),
+        main.bar.color  = "gray44")
+  
+```
+
+#### N° peptides {.tabset .tabset-fade}
+
+##### iST
+
+```{r n_peptides_iST_23, fig.height = 20, fig.width = 15}
+a <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(75:80))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.75" | fraction == "Fraction.78" ~ "1",
+                              fraction == "Fraction.76" | fraction == "Fraction.79" ~ "2",
+                              fraction == "Fraction.77" | fraction == "Fraction.80" ~ "3")) %>%
+  group_by(fraction) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(75:77))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.75" ~ "1",
+                              fraction == "Fraction.76" ~ "2",
+                              fraction == "Fraction.77" ~ "3")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")
+
+
+c <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(78:80))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.78" ~ "1",
+                              fraction == "Fraction.79" ~ "2",
+                              fraction == "Fraction.80" ~ "3")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,14000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,14000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+```
+
+##### SP3
+
+```{r n_peptides_SP3_23, fig.height = 20, fig.width = 15}
+a <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(81:86))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.81" | fraction == "Fraction.84" ~ "1",
+                              fraction == "Fraction.82" | fraction == "Fraction.85" ~ "2",
+                              fraction == "Fraction.83" | fraction == "Fraction.86" ~ "3")) %>%
+  group_by(fraction) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(81:83))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.81" ~ "1",
+                              fraction == "Fraction.82" ~ "2",
+                              fraction == "Fraction.83" ~ "3")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")
+
+
+c <- peptides_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(84:86))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.84" ~ "1",
+                              fraction == "Fraction.85" ~ "2",
+                              fraction == "Fraction.86" ~ "3")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,11000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,11000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° peptides")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+```
+
+#### N° proteins {.tabset .tabset-fade}
+
+##### iST
+
+```{r n_proteins_iST_23, fig.height = 20, fig.width = 15}
+a <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(75:80))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.75" | fraction == "Fraction.78" ~ "1",
+                              fraction == "Fraction.76" | fraction == "Fraction.79" ~ "2",
+                              fraction == "Fraction.77" | fraction == "Fraction.80" ~ "3")) %>%
+  group_by(fraction) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(75:77))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.75" ~ "1",
+                              fraction == "Fraction.76" ~ "2",
+                              fraction == "Fraction.77" ~ "3")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")
+
+
+c <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(78:80))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.78" ~ "1",
+                              fraction == "Fraction.79" ~ "2",
+                              fraction == "Fraction.80" ~ "3")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,4000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,4000))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+```
+
+##### SP3
+
+```{r n_proteins_SP3_23, fig.height = 20, fig.width = 15}
+a <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(81:86))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>%
+  group_by(fraction) %>% 
+  summarise(sum = sum(peptides)) %>% 
+  ungroup() %>% 
+  mutate(fraction = case_when(fraction == "Fraction.81" | fraction == "Fraction.84" ~ "1",
+                              fraction == "Fraction.82" | fraction == "Fraction.85" ~ "2",
+                              fraction == "Fraction.83" | fraction == "Fraction.86" ~ "3")) %>%
+  group_by(fraction) %>% 
+  summarise(mean = round(mean(sum), 0), sd = sd(sum)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Total")
+
+
+b <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(81:83))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.81" ~ "1",
+                              fraction == "Fraction.82" ~ "2",
+                              fraction == "Fraction.83" ~ "3")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_1") %>% 
+  filter(unique_2 != "no_unique")
+
+
+c <- data_unique %>% 
+  as.data.frame() %>% 
+  select(starts_with("Fraction.") | starts_with("name")) %>% 
+  select(matches("name") | contains(as.character(84:86))) %>% 
+  pivot_longer(!name, names_to = "fraction", values_to = "peptides") %>% 
+  mutate(peptides = case_when(is.na(peptides) ~ 0, TRUE ~ as.numeric(1))) %>% 
+  mutate(fraction = case_when(fraction == "Fraction.84" ~ "1",
+                              fraction == "Fraction.85" ~ "2",
+                              fraction == "Fraction.86" ~ "3")) %>%
+  group_by(name) %>% 
+  mutate(unique = if_else(sum(peptides) == 1, T, F)) %>% 
+  mutate(unique_2 = if_else(peptides == 1 & unique, fraction, "no_unique")) %>% 
+  ungroup() %>% 
+  dplyr::count(unique_2, name = "rep_2") %>% 
+  filter(unique_2 != "no_unique")  
+  
+table <- b %>% 
+  left_join(c) %>%
+  dplyr::rename(fraction = unique_2) %>% 
+  pivot_longer(!fraction, names_to = "replicate", values_to = "value") %>% 
+  group_by(fraction) %>% 
+  summarize(mean = round(mean(value), 0), sd = sd(value)) %>% 
+  ungroup() %>% 
+  mutate(Identity = "Unique") %>% 
+  rbind(a, .)
+
+table_perc <- table %>% 
+  select(-sd) %>% 
+  pivot_wider(names_from = Identity, values_from = mean) %>% 
+  mutate(perc = paste(round(Unique * 100 / Total,0),"%",sep="")) %>% 
+  pivot_longer(!contains("r"), names_to = "Identity", values_to = "n_peptides") %>% 
+  mutate(perc = case_when(Identity == "Total" ~ as.character(n_peptides), TRUE ~ as.character(perc)))
+
+p1 <- ggplot(table, aes(x=fraction, y=mean, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), vjust=-1,position = position_dodge(0.9), size=13) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,3500))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25))+
+  theme_DEP1()
+
+p2 <- ggplot(table_perc, aes(x=fraction, y=n_peptides, fill=Identity)) +
+  geom_bar(stat="identity", position=position_dodge(0))+
+  geom_text(aes(label=perc), vjust=-.4, size=12) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,3500))+  ## cambiare il limite in base al plot
+  labs(x = "Fractions", y = "n° proteins")+
+  theme(axis.text.x = element_text(size=35, angle=0),
+        axis.text.y = element_text(size=30, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) +
+  theme_DEP1()
+
+p1 / p2
+```
+
+
+
+### Fractionation iST comparisons {.tabset .tabset-fade}
+
+In this analysis I compare the different number of protein identify in the three fractionation methods in **iST**.
+
+```{r exp_4}
+expdesign <- read.table(here::here("data/expdesign_2.tsv"), header = T, stringsAsFactors = F)
+
+conditions<-c("Fraz_8_iST_HpH", "Fraz_6_iST_HpH", "Fraz_3_iST_AddOn")
+
+expdesign <- subset(expdesign, condition %in% conditions)
+
+columns<-match(paste("Intensity.",expdesign$label,sep=""),colnames(data_unique))
+
+Fractionation <- make_se(data_unique, columns, expdesign)
+```
+
+#### Protein per sapmle
+
+```{r plot_numb_4, warning=FALSE,fig.height = 13, fig.width = 15}
+plot_numbers_lables(Fractionation, sub_title = "Fractionation iST", lab_size = 10)
+```
+
+#### Distibution of each sample
+
+```{r plot_norm_4, fig.height = 10, fig.width = 10}
+plot_normalization(Fractionation)
+```
+
+#### Upset plot Fractionation 3
+
+```{r up_4, fig.height = 13, fig.width = 15}
+define_set <- c("iST_50ug_HpH8_1", "iST_50ug_HpH8_2", "iST_50ug_HpH6_1", "iST_50ug_HpH6_2", "iST_50ug_AddOn_1", "iST_50ug_AddOn_2")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("AddOn") | contains("HpH")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>%
+  upset(nsets = 6,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("turquoise3", "forestgreen", "coral2"), each = 2),
+        main.bar.color  = "gray44")
+  
+```
+
+#### Upset plot mean
+
+```{r venn}
+define_set <- c("iST_50ug_HpH8", "iST_50ug_HpH6", "iST_50ug_AddOn")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("AddOn") | contains("HpH")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  mutate(samples = gsub(pattern = "_.$", replacement = "", samples)) %>% 
+  group_by(name, samples) %>% 
+  mutate(unique = if_else(sum(intensity) == 0, 0, 1)) %>% 
+  ungroup() %>% 
+  select(-intensity) %>% 
+  group_by(name) %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  pivot_wider(id_cols = name, names_from = samples, values_from = unique) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 3,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = c("turquoise3", "forestgreen", "coral2"),
+        main.bar.color  = "gray44")
+  
+```
+
+#### Venn mean
+
+```{r}
+knitr::include_graphics(here::here("data/venn_iST.png"))
+```
+
+
+### Fractionation SP3 comparisons {.tabset .tabset-fade}
+
+In this analysis I compare the different number of protein identify in the three fractionation methods in **SP3**.
+
+```{r exp_5}
+expdesign <- read.table(here::here("data/expdesign_2.tsv"), header = T, stringsAsFactors = F)
+
+conditions<-c("Fraz_8_SP3_HpH", "Fraz_6_SP3_HpH", "Fraz_3_SP3_AddOn")
+
+expdesign <- subset(expdesign, condition %in% conditions)
+
+columns<-match(paste("Intensity.",expdesign$label,sep=""),colnames(data_unique))
+
+Fractionation <- make_se(data_unique, columns, expdesign)
+```
+
+#### Protein per sapmle
+
+```{r plot_numb_5, warning=FALSE,fig.height = 13, fig.width = 15}
+plot_numbers_lables(Fractionation, sub_title = "Fractionation SP3", lab_size = 10)
+```
+
+#### Distibution of each sample
+
+```{r plot_norm_5, fig.height = 10, fig.width = 10}
+plot_normalization(Fractionation)
+```
+
+#### Upset plot Fractionation 3
+
+```{r up_5, fig.height = 13, fig.width = 15}
+define_set <- c("SP3_50ug_HpH8_1", "SP3_50ug_HpH8_2", "SP3_50ug_HpH6_1", "SP3_50ug_HpH6_2", "SP3_50ug_AddOn_1", "SP3_50ug_AddOn_2")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("AddOn") | contains("HpH")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 6,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("turquoise3", "forestgreen", "coral2"), each = 2),
+        main.bar.color  = "gray44")
+  
+```
+
+#### Upset plot mean
+
+```{r venn2}
+define_set <- c("SP3_50ug_HpH8", "SP3_50ug_HpH6", "SP3_50ug_AddOn")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("AddOn") | contains("HpH")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  mutate(samples = gsub(pattern = "_.$", replacement = "", samples)) %>% 
+  group_by(name, samples) %>% 
+  mutate(unique = if_else(sum(intensity) == 0, 0, 1)) %>% 
+  ungroup() %>% 
+  select(-intensity) %>% 
+  group_by(name) %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  pivot_wider(id_cols = name, names_from = samples, values_from = unique) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 3,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = c("turquoise3", "forestgreen", "coral2"),
+        main.bar.color  = "gray44")
+  
+```
+
+#### Venn mean
+
+```{r}
+knitr::include_graphics(here::here("data/venn_SP3.png"))
+```
+
+
+
+### Charges
+
+```{r charge}
+peptides_unique %>% 
+  as.data.frame() %>%
+  select(contains("charge")) %>% 
+  mutate(Charges = gsub(pattern = ";.", replacement = "", Charges)) %>% 
+  dplyr::count(Charges) %>% 
+  ggplot(mapping = aes(x = Charges, y = n, fill = Charges)) +
+  geom_bar(stat="identity") +
+  geom_text(aes(label=n), vjust=-.4, size=9) + 
+  theme(axis.line = element_line(size = 0.3, linetype = "solid"), 
+        axis.ticks = element_line(size = 1), 
+        panel.grid.major = element_line(colour = "gray95", size = 0.3), 
+        panel.grid.minor = element_line(colour = "gray95", size = 0.3), 
+        axis.title = element_text(size = 18, face = "bold", colour = "black"), 
+        axis.text = element_text(size = 20, colour = "gray15"), 
+        plot.title = element_text(size = 20, face = "bold", hjust = 0.5), 
+        legend.text = element_text(size = 14), 
+        legend.title = element_text(size = 14, face = "bold"), 
+        panel.background = element_rect(fill = "white")) +
+  labs(title = "Charge distribution", y = "Counts")
+  
+```
+
+
+```{r}
+gene_name <- data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("AddOn") | contains("HpH")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  mutate(samples = gsub(pattern = "_.$", replacement = "", samples)) %>% 
+  group_by(name, samples) %>% 
+  mutate(unique = if_else(sum(intensity) == 0, 0, 1)) %>% 
+  ungroup() %>% 
+  select(-intensity) %>% 
+  group_by(name) %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  pivot_wider(id_cols = name, names_from = samples, values_from = unique) %>%
+  mutate(gene_name = if_else(SP3_50ug_AddOn == 1, T, F)) %>% 
+  filter(gene_name) %>% 
+  pull(name)
+#write.table(gene_name,file = "gene_name_SP3_50ug_AddOn.txt", sep="\t", quote=FALSE, row.names=FALSE, col.names = F)
+```
+
+## {-}
+
+***

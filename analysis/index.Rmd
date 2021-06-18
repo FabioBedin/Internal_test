@@ -8,4 +8,14 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+# Internal test
+
+## Analysis
+
+***
+
++ [iST vs SP3](comparison_iST_vs_SP3.html): Comparisons between Titration of **iST** and **SP3** in different concetration and wirh LCM.
+
++ [iST vs SP3 with fractionation](comparison_iST_vs_SP3_fraz.html): Comparizon between different type of fractionations.
+
++ [In Gel](iInGel.html): comparison between standard and 2cm cut In Gel digestion.

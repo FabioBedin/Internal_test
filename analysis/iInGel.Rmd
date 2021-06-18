@@ -1,0 +1,117 @@
+---
+title: "In Gel"
+author: "Fabio Bedin | MS-Unit"
+output: html_document
+---
+
+
+```{r librerie, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(fig.align = "center", warning = FALSE, message = FALSE, fig.height = 10, fig.width = 10)
+library("MBQN")
+library("dplyr")
+library("tidyr")
+library("DEP")
+library("SummarizedExperiment")
+library("preprocessCore")
+library("tibble")
+library("ggplot2")
+library("enrichR")
+library("DT")
+library("stringr")
+library("patchwork")
+library("here")
+library("datapasta")
+library("ggstatsplot")
+library("UpSetR")
+library("ggrepel")
+```
+
+```{r Custom Functions}
+
+source(here::here("code/custom_functions.R"))
+
+```
+
+## Introduction {.tabset .tabset-fade}
+
+***
+scrivere qualcosa...
+
+```{r input_Data}
+data <- read.csv(here::here("data/proteinGroupsInGel.txt"), header = TRUE,stringsAsFactors = FALSE, sep = "\t")
+
+data <- data[data$Reverse != "+" & data$Potential.contaminant != "+" & data$Only.identified.by.site != "+",]
+
+data_unique <- make_unique(data, "Gene.names", "Protein.IDs", delim = ";")
+```
+
+
+```{r}
+expdesign <- read.table(here::here("data/expdesign_3.tsv"), header = T, stringsAsFactors = F)
+
+columns<-match(paste("Intensity.",expdesign$label,sep=""),colnames(data_unique))
+
+data_InGel <- make_se(data_unique, columns, expdesign)
+```
+
+### Average Proteins
+
+```{r plot_numb_2, warning=FALSE,fig.height = 13, fig.width = 15}
+c <- data_unique %>% 
+  as.data.frame() %>%
+  select(starts_with("Intensity.") | starts_with("ID", ignore.case = FALSE)) %>% 
+  pivot_longer(!ID, "intensity", "value") %>% 
+  mutate(value = if_else(value != 0, 1, 0)) %>% 
+  pivot_wider(id_cols = ID, names_from = intensity, values_from = value)
+
+c1 <- c %>% 
+  select(starts_with("ID") | contains("1cm")) %>% 
+  pivot_longer(!ID, names_to = "intensity", values_to = "value") %>% 
+  group_by(intensity) %>% 
+  summarise(sum = sum(value)) %>% 
+  mutate(mean = mean(sum), sd = sd(sum)) %>% 
+  pivot_wider(names_from = intensity, values_from = sum) %>% 
+  mutate(condition = "cut_1cm") %>% 
+  select(!contains("1cm"))
+
+c2 <- c %>% 
+  select(starts_with("ID") | !contains("1cm")) %>% 
+  pivot_longer(!ID, names_to = "intensity", values_to = "value") %>% 
+  group_by(intensity) %>% 
+  summarise(sum = sum(value)) %>% 
+  mutate(mean = mean(sum), sd = sd(sum)) %>% 
+  pivot_wider(names_from = intensity, values_from = sum) %>% 
+  mutate(condition = "standard") %>% 
+  select(!contains("Intensity."))
+
+c3 <- rbind(c1, c2)
+c3 <- c3 %>% mutate(mean = round(mean, 0))
+
+ggplot(c3, aes(x=condition, y=mean, fill=condition)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, size=1, position=position_dodge(.9)) +
+  geom_text(aes(label=mean), position = position_stack(vjust = 0.5), size=14)+
+  labs(y = "n° proteins", x = NULL) +
+  theme_DEP3(basesize = 25) +
+  scale_y_continuous(n.breaks = 6, limits = c(0,2000))+  ## cambiare il limite in base al plot
+  theme(axis.text.x = element_text(size=30, angle=0),
+        axis.text.y = element_text(size=25, angle=0),
+        axis.title=element_text(size=35),
+        legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25)) 
+
+
+```
+
+
+### Protein per sapmle
+
+```{r plot_numb_1, warning=FALSE,fig.height = 13, fig.width = 15}
+plot_numbers_lables(data_InGel, sub_title = "In Gel", lab_size = 10, b_size = 18)
+```
+
+### Distibution of each sample
+
+```{r plot_norm_1, fig.height = 10, fig.width = 10}
+plot_normalization(data_InGel)
+```

@@ -1,0 +1,350 @@
+---
+title: "iST vs SP3"
+author: "Fabio Bedin | MS-Unit"
+output: html_document
+---
+
+```{r librerie, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(fig.align = "center", warning = FALSE, message = FALSE, fig.height = 10, fig.width = 10)
+library("MBQN")
+library("dplyr")
+library("tidyr")
+library("DEP")
+library("SummarizedExperiment")
+library("preprocessCore")
+library("tibble")
+library("ggplot2")
+library("enrichR")
+library("DT")
+library("stringr")
+library("patchwork")
+library("here")
+library("datapasta")
+library("ggstatsplot")
+library("UpSetR")
+library("ggrepel")
+```
+
+```{r Custom Functions}
+
+source(here::here("code/custom_functions.R"))
+
+```
+
+## Introduction {.tabset .tabset-fade .tabset-pills}
+
+***
+scrivere qualcosa...
+
+```{r input_Data}
+data <- read.csv(here::here("data/proteinGroups_iST_SP3_HpH_Add_on.txt"), header = TRUE,stringsAsFactors = FALSE, sep = "\t")
+
+data <- data[data$Reverse != "+" & data$Potential.contaminant != "+" & data$Only.identified.by.site != "+",]
+
+data_unique <- make_unique(data, "Gene.names", "Protein.IDs", delim = ";")
+```
+
+### Titration iST vs SP3 {.tabset .tabset-fade}
+
+In this analysis I compare the different number of protein identify in the two conditions **iST** and **iST + SP3** taking into account the different concentrations used: *0.1ug*, *1ug* and *5ug*.
+
+```{r exp_1}
+expdesign <- read.table(here::here("data/expdesign_2.tsv"), header = T, stringsAsFactors = F)
+
+conditions<-c("Ist_01ug", "Ist_1ug", "Ist_5ug", "SP3_01ug", "SP3_1ug", "SP3_5ug")
+#conditions<-c("Fractination_8_iST", "Fractination_6_iST", "Fractination_3_iST_AddOn")
+
+expdesign <- subset(expdesign, condition %in% conditions)
+
+columns<-match(paste("Intensity.",expdesign$label,sep=""),colnames(data_unique))
+
+Titration <- make_se(data_unique, columns, expdesign)
+```
+
+#### Protein per sapmle
+
+```{r plot_numb_1, warning=FALSE,fig.height = 13, fig.width = 15}
+plot_numbers_lables(Titration, sub_title = "Titration", lab_size = 10)
+```
+
+#### Distibution of each sample
+
+```{r plot_norm_1, fig.height = 10, fig.width = 10}
+plot_normalization(Titration)
+```
+ 
+```{r}
+# data_unique %>%
+#   as.data.frame() %>%
+#   select(starts_with(c("name", "Intensity."))) %>%
+#   select(starts_with("name") | contains("ug") & !contains("AddOn") & !contains("HpH")) %>% 
+#   pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+#   mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+#   group_by(samples) %>% 
+#   summarize(n = n(), sum = sum(intensity)) %>% 
+#   mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+#   mutate(condition = gsub(pattern = "_[[:digit:]]$", replacement = "", samples)) %>% 
+#   ggplot( mapping = aes(x = samples, y = sum, fill = condition)) +
+#     geom_col() +
+#     geom_text(aes(label=sum), size=5, position = position_stack(vjust = 0.5))+
+#     labs(title = "Titration", x = "",y = "Number of proteins") +
+#     theme_DEP2() + 
+#     theme(plot.subtitle = element_text(size = 16, face = "bold", hjust = 0.5), plot.title = element_text(size = 20)) +
+#     labs(x = NULL, subtitle = "Protein per sample") 
+```
+
+#### Upset plot 0.1ug
+
+```{r up_1, fig.height = 13, fig.width = 15}
+define_set <- c("iST_01ug_1", "iST_01ug_2", "iST_01ug_3","SP3_01ug_1", "SP3_01ug_2", "SP3_01ug_3")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("ug") & !contains("AddOn") & !contains("HpH")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 6,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 3),
+        main.bar.color  = "gray44")
+  
+```
+
+#### Upset plot 1ug
+
+```{r up_2, fig.height = 13, fig.width = 15}
+define_set <- c("iST_1ug_1", "iST_1ug_2", "iST_1ug_3", "SP3_1ug_1", "SP3_1ug_2", "SP3_1ug_3")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("ug") & !contains("AddOn") & !contains("HpH")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 6,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 3),
+        main.bar.color  = "gray44")
+  
+```
+
+#### Upset plot 5ug
+
+```{r up_3, fig.height = 13, fig.width = 15}
+define_set <- c("iST_5ug_1", "iST_5ug_2", "iST_5ug_3", "SP3_5ug_1", "SP3_5ug_2", "SP3_5ug_3")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("ug") & !contains("AddOn") & !contains("HpH")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 6,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 3),
+        main.bar.color  = "gray44")
+  
+```
+
+### Titration **LCM** iST vs SP3 {.tabset .tabset-fade}
+
+In this analysis I compare the different number of protein identify in the two conditions **LCM-iST** and **LCM-iST + SP3** taking into account the different cells used: *1000*, *500*, *250* *125* and *50*.
+
+```{r exp_2}
+expdesign <- read.table(here::here("data/expdesign_2.tsv"), header = T, stringsAsFactors = F)
+
+conditions<-c("LCM_iST_1000", "LCM_iST_500", "LCM_iST_250", "LCM_iST_125", "LCM_iST_50",
+              "LCM_SP3_1000", "LCM_SP3_500", "LCM_SP3_250", "LCM_SP3_125", "LCM_SP3_50")
+#conditions<-c("Fractination_8_iST", "Fractination_6_iST", "Fractination_3_iST_AddOn")
+
+expdesign <- subset(expdesign, condition %in% conditions)
+
+columns<-match(paste("Intensity.",expdesign$label,sep=""),colnames(data_unique))
+
+Titration <- make_se(data_unique, columns, expdesign)
+```
+
+#### Protein per sapmle
+
+```{r plot_numb_2, warning=FALSE,fig.height = 13, fig.width = 15}
+plot_numbers_lables(Titration, sub_title = "Titration LCM", intercept = F, lab_size = 10)
+```
+
+#### Distibution of each sample
+
+```{r plot_norm_2, message=FALSE, fig.height = 10, fig.width = 10}
+plot_normalization(Titration)
+```
+ 
+#### Upset plot 1000
+
+```{r up_1.1, fig.height = 13, fig.width = 15}
+define_set <- c("iST_1000_LMC_1", "iST_1000_LMC_2", "SP3_1000_LMC_1", "SP3_1000_LMC_2")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("LMC")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 2),
+        main.bar.color  = "gray44")
+  
+```
+
+#### Upset plot 500
+
+```{r up_2.1, fig.height = 13, fig.width = 15}
+define_set <- c("iST_500_LMC_1", "iST_500_LMC_2", "SP3_500_LMC_1", "SP3_500_LMC_2")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("LMC")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 2),
+        main.bar.color  = "gray44")
+  
+```
+
+#### Upset plot 250
+
+```{r up_3.1, fig.height = 13, fig.width = 15}
+define_set <- c("iST_250_LMC_1", "iST_250_LMC_2", "SP3_250_LMC_1", "SP3_250_LMC_2")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("LMC")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 2),
+        main.bar.color  = "gray44")
+  
+```
+
+#### Upset plot 125
+
+```{r up_4.1, fig.height = 13, fig.width = 15}
+define_set <- c("iST_125_LMC_1", "iST_125_LMC_2", "SP3_125_LMC_1", "SP3_125_LMC_2")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("LMC")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 2),
+        main.bar.color  = "gray44")
+  
+```
+
+#### Upset plot 50 cells
+
+```{r up_5.1, fig.height = 13, fig.width = 15}
+define_set <- c("iST_50_LMC_1", "iST_50_LMC_2", "SP3_50_LMC_1", "SP3_50_LMC_2")
+
+data_unique %>%
+  as.data.frame() %>%
+  select(starts_with(c("name", "Intensity."))) %>%
+  ## define combination of interest in the original dataset
+  select(starts_with("name") | contains("LMC")) %>% 
+  pivot_longer(!name, names_to = "samples", values_to = "intensity") %>% 
+  mutate(intensity = if_else(intensity == 0, 0, 1)) %>% 
+  mutate(samples = gsub(pattern = "^.*\\.", replacement = "", samples)) %>% 
+  pivot_wider(names_from = samples, values_from = intensity) %>% 
+  as.data.frame() %>% 
+  upset(nsets = 4,
+        sets = define_set,
+        #order.by = "degree",
+        order.by = "freq",
+        keep.order = T,
+        text.scale = 2.5,
+        point.size = 4,
+        line.size = 0.5, 
+        sets.bar.color = rep(c("coral2", "turquoise3"), each = 2),
+        main.bar.color  = "gray44")
+  
+```
+
+
