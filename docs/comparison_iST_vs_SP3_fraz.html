@@ -38,6 +38,8 @@
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
 <script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
 
 <link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
 <!-- Add a small amount of space between sections. -->
@@ -336,7 +338,13 @@ div.tocify {
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
-        
+        <li>
+  <a href="https://github.com/FabioBedin/Internal_test">
+    <span class="fas fa-github"></span>
+     
+    Source code
+  </a>
+</li>
       </ul>
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
@@ -471,16 +479,16 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrong2287c34"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> 2287c34 </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomFabioBedinInternaltesttree4ac50cc2dc3cffe95816c24f37e2955845266201targetblank4ac50cca"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/FabioBedin/Internal_test/tree/4ac50cc2dc3cffe95816c24f37e2955845266201" target="_blank">4ac50cc</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrong2287c34" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomFabioBedinInternaltesttree4ac50cc2dc3cffe95816c24f37e2955845266201targetblank4ac50cca" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
 </p>
 <p>
-The results in this page were generated with repository version 2287c34. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+The results in this page were generated with repository version <a href="https://github.com/FabioBedin/Internal_test/tree/4ac50cc2dc3cffe95816c24f37e2955845266201" target="_blank">4ac50cc</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
 </p>
 <p>
 Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -503,17 +511,12 @@ Untracked files:
     Untracked:  data/proteinGroupsInGel.txt
     Untracked:  data/proteinGroups_iST_SP3_HpH_Add_on.txt
     Untracked:  data/summary.xlsx
-    Untracked:  data/venn_SP3.png
-    Untracked:  data/venn_iST.png
     Untracked:  gene_name_SP3_50ug_AddOn.txt
     Untracked:  gene_name_SP3_50ug_HpH6.txt
     Untracked:  gene_name_SP3_50ug_HpH8.txt
     Untracked:  gene_name_iST_50ug_AddOn.txt
     Untracked:  gene_name_iST_50ug_HpH6.txt
     Untracked:  gene_name_iST_50ug_HpH8.txt
-
-Unstaged changes:
-    Modified:   analysis/_site.yml
 
 </code></pre>
 <p>
@@ -557,7 +560,41 @@ Message
 Rmd
 </td>
 <td>
-2287c34
+<a href="https://github.com/FabioBedin/Internal_test/blob/4ac50cc2dc3cffe95816c24f37e2955845266201/analysis/comparison_iST_vs_SP3_fraz.Rmd" target="_blank">4ac50cc</a>
+</td>
+<td>
+FabioBedin
+</td>
+<td>
+2021-06-18
+</td>
+<td>
+wflow_publish(“analysis/comparison_iST_vs_SP3_fraz.Rmd”)
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/FabioBedin/Internal_test/fb1bccd9aff9fa594cbb35e9f72d8b4c66802886/docs/comparison_iST_vs_SP3_fraz.html" target="_blank">fb1bccd</a>
+</td>
+<td>
+FabioBedin
+</td>
+<td>
+2021-06-18
+</td>
+<td>
+Build site.
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/FabioBedin/Internal_test/blob/2287c34136adea8ccd8efc2dd3fc7122a3e97de7/analysis/comparison_iST_vs_SP3_fraz.Rmd" target="_blank">2287c34</a>
 </td>
 <td>
 FabioBedin
@@ -2188,8 +2225,11 @@ data_unique %&gt;%
 </div>
 <div id="venn-mean" class="section level4">
 <h4>Venn mean</h4>
-<pre class="r"><code>knitr::include_graphics(here::here(&quot;data/venn_iST.png&quot;))</code></pre>
-<p><img src="C:/Users/ieo4973/Documents/Internal_test/data/venn_iST.png" width="640" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dir.create(here::here(&quot;docs/assets&quot;), showWarnings = F)
+file.copy(from = here::here(&quot;data/venn_iST.png&quot;), to = here::here(&quot;docs/assets/venn_iST.png&quot;))</code></pre>
+<pre><code>[1] FALSE</code></pre>
+<pre class="r"><code>knitr::include_graphics(here::here(&quot;assets/venn_iST.png&quot;), error = F)</code></pre>
+<p><img src="C:/Users/ieo4973/Documents/Internal_test/assets/venn_iST.png" style="display: block; margin: auto;" /></p>
 </div>
 </div>
 <div id="fractionation-sp3-comparisons" class="section level3 tabset tabset-fade">
@@ -2276,8 +2316,11 @@ data_unique %&gt;%
 </div>
 <div id="venn-mean-1" class="section level4">
 <h4>Venn mean</h4>
-<pre class="r"><code>knitr::include_graphics(here::here(&quot;data/venn_SP3.png&quot;))</code></pre>
-<p><img src="C:/Users/ieo4973/Documents/Internal_test/data/venn_SP3.png" width="640" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dir.create(here::here(&quot;docs/assets&quot;), showWarnings = F)
+file.copy(from = here::here(&quot;data/venn_SP3.png&quot;), to = here::here(&quot;docs/assets/venn_SP3.png&quot;))</code></pre>
+<pre><code>[1] FALSE</code></pre>
+<pre class="r"><code>knitr::include_graphics(here::here(&quot;assets/venn_SP3.png&quot;), error = F)</code></pre>
+<p><img src="C:/Users/ieo4973/Documents/Internal_test/assets/venn_SP3.png" style="display: block; margin: auto;" /></p>
 </div>
 </div>
 <div id="charges" class="section level3">
